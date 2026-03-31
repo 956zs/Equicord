@@ -5,6 +5,11 @@ on:
         branches:
             - main
     workflow_dispatch:
+    workflow_run:
+        workflows:
+            - Sync Custom Plugin
+        types:
+            - completed
 
 permissions:
     contents: write
@@ -15,7 +20,7 @@ concurrency:
 
 jobs:
     release:
-        if: github.repository == '956zs/Equicord'
+        if: github.repository == '956zs/Equicord' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
         runs-on: ubuntu-latest
 
         steps:
