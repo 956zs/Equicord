@@ -1,0 +1,63 @@
+name: Sync Custom Plugin
+
+on:
+    workflow_dispatch:
+    schedule:
+        - cron: "*/15 * * * *"
+    workflow_run:
+        workflows:
+            - Sync Upstream
+        types:
+            - completed
+
+permissions:
+    contents: write
+
+concurrency:
+    group: sync-custom-plugin
+    cancel-in-progress: false
+
+jobs:
+    sync:
+        name: Sync plugin repo into fork
+        if: github.repository == '956zs/Equicord'
+        runs-on: ubuntu-latest
+
+        env:
+            TARGET_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+            PLUGIN_REPO: https://github.com/956zs/Equicord-Plugin.git
+            PLUGIN_PATH: customVerticalWriter/index.tsx
+            TARGET_PATH: src/userplugins/customVerticalWriter/index.tsx
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  ref: ${{ github.event.repository.default_branch || 'main' }}
+
+            - name: Configure git
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+            - name: Clone plugin repo
+              run: git clone --depth 1 "$PLUGIN_REPO" plugin-source
+
+            - name: Copy plugin into fork
+              run: |
+                  test -f "plugin-source/$PLUGIN_PATH"
+                  mkdir -p "$(dirname "$TARGET_PATH")"
+                  cp "plugin-source/$PLUGIN_PATH" "$TARGET_PATH"
+
+            - name: Commit synced plugin
+              run: |
+                  git add -f "$TARGET_PATH"
+
+                  if git diff --cached --quiet -- "$TARGET_PATH"; then
+                    echo "Plugin already up to date."
+                    exit 0
+                  fi
+
+                  plugin_sha="$(git -C plugin-source rev-parse --short HEAD)"
+                  git commit -m "Sync CustomVerticalWriter from 956zs/Equicord-Plugin@$plugin_sha"
+                  git push origin "HEAD:$TARGET_BRANCH"
