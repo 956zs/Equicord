@@ -19,8 +19,59 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    reporter:
+        if: github.repository == '956zs/Equicord' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: pnpm/action-setup@v3
+
+            - name: Use Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: "pnpm"
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build reporter
+              run: pnpm buildReporter
+
+            - name: Run reporter for stable and canary
+              run: |
+                  export PATH="$PWD/node_modules/.bin:$PATH"
+                  export CHROMIUM_BIN=/usr/bin/google-chrome
+
+                  esbuild scripts/generateReport.ts > dist/report.mjs
+
+                  stable_output_file=$(mktemp)
+                  canary_output_file=$(mktemp)
+
+                  exit_code=0
+
+                  node dist/report.mjs > "$stable_output_file" || exit_code=1
+                  USE_CANARY=true node dist/report.mjs > "$canary_output_file" || exit_code=1
+
+                  cat "$stable_output_file" "$canary_output_file" | tee dist/reporter-summary.md
+                  cat dist/reporter-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+                  exit $exit_code
+
+            - name: Upload reporter summary
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: reporter-summary
+                  path: dist/reporter-summary.md
+
     release:
         if: github.repository == '956zs/Equicord' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+        needs: reporter
         runs-on: ubuntu-latest
 
         steps:
