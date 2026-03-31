@@ -1,10 +1,14 @@
-# [<img src="./browser/icon.png" width="40" align="left" alt="Equicord">](https://github.com/Equicord/Equicord) Equicord
+# [<img src="./browser/icon.png" width="40" align="left" alt="Equicord">](https://github.com/956zs/Equicord) Equicord
 
 [![Equibop](https://img.shields.io/badge/Equibop-grey?style=flat)](https://github.com/Equicord/Equibop)
-[![Tests](https://github.com/Equicord/Equicord/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Equicord/Equicord/actions/workflows/test.yml)
+[![Tests](https://github.com/956zs/Equicord/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/956zs/Equicord/actions/workflows/test.yml)
 [![Discord](https://img.shields.io/discord/1173279886065029291.svg?color=768AD4&label=Discord&logo=discord&logoColor=white)](https://equicord.org/discord)
 
 Equicord is a fork of [Vencord](https://github.com/Vendicated/Vencord), with over 300+ plugins.
+
+This fork ships a rolling custom build that automatically syncs upstream Equicord and re-injects the `CustomVerticalWriter` plugin from:
+
+- `https://github.com/956zs/Equicord-Plugin`
 
 You can join our [Discord server](https://equicord.org/discord) for commits, changes, chatting, or even support.
 
@@ -12,26 +16,23 @@ You can join our [Discord server](https://equicord.org/discord) for commits, cha
 
 Our included plugins can be found [here](https://equicord.org/plugins).
 
-## Installing / Uninstalling
+## Installing / Updating This Fork
 
 Windows
 
-- [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.exe)
-- [CLI](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli.exe)
-
-MacOS
-
-- [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl.MacOS.zip)
-
-Linux
-
-- [GUI](https://github.com/Equicord/Equilotl/releases/latest/download/Equilotl-x11)
-- [CLI](https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-Linux)
-- [AUR](https://aur.archlinux.org/packages?O=0&K=equicord)
-
-```shell
-sh -c "$(curl -sS https://raw.githubusercontent.com/Equicord/Equicord/refs/heads/main/misc/install.sh)"
+```powershell
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/956zs/Equicord/main/misc/install.ps1 | iex"
 ```
+
+Linux / macOS
+
+```sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/956zs/Equicord/main/misc/install.sh)"
+```
+
+Latest rolling release:
+
+- `https://github.com/956zs/Equicord/releases/latest`
 
 ## Installing Equicord Devbuild
 
@@ -52,7 +53,7 @@ npm i -g pnpm
 Clone Equicord:
 
 ```shell
-git clone https://github.com/Equicord/Equicord
+git clone https://github.com/956zs/Equicord
 cd Equicord
 ```
 

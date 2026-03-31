@@ -1,124 +1,51 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Configuration
-INSTALLER_PATH="$HOME/.equilotl"
-GITHUB_URL="https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-Linux"
-PRIVILEGE_CMDS=("sudo" "doas")
-DEBUG=false
-LOG_FILE="$(dirname "$(realpath "$0")")/equicordinstalldebug.log"
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Debug logging
-debug_log() {
-    if $DEBUG; then
-        set -euo pipefail
-        local timestamp
-        timestamp=$(date +"%Y-%m-%d %T")
-        echo -e "[$timestamp] $1" | tee -a "$LOG_FILE"
-    fi
-}
-
-# Error handling
-error() {
-    echo -e "${RED}Error: $1${NC}" >&2
+if [ "$(id -u)" -eq 0 ]; then
+    echo "Run me as normal user, not root!"
     exit 1
-}
+fi
 
-# Check for root
-check_root() {
-    if [ "$(id -u)" -eq 0 ]; then
-        error "This script should not be run as root. Please run as a normal user."
-    fi
-}
+if grep -q "CHROMEOS_RELEASE_NAME" /etc/lsb-release 2>/dev/null; then
+    echo "ChromeOS is not supported by this installer flow."
+    exit 1
+fi
 
-# Download the installer
-download_installer() {
-    echo -e "${YELLOW}Downloading installer...${NC}"
-    if ! curl -sSL "$GITHUB_URL" --output "$INSTALLER_PATH"; then
-        error "Failed to download installer from GitHub"
-    fi
-    chmod +x "$INSTALLER_PATH" || error "Failed to make installer executable"
-}
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/956zs-equicord"
+INSTALLER_PATH="$CACHE_DIR/EquilotlCli-Linux"
+ASAR_PATH="$CACHE_DIR/desktop.asar"
+XDG_CONFIG_HOME_VALUE="${XDG_CONFIG_HOME:-}"
 
-# Check if installer needs update
-check_for_updates() {
-    if [ ! -f "$INSTALLER_PATH" ]; then
-        echo -e "${YELLOW}Installer not found. Downloading...${NC}"
-        download_installer
-        return
-    fi
+mkdir -p "$CACHE_DIR"
 
-    local latest_modified local_modified
-    if ! latest_modified=$(curl -sI "$GITHUB_URL" | grep -i "last-modified" | cut -d' ' -f2-); then
-        echo -e "${YELLOW}Warning: Could not fetch last modified date from GitHub. Using existing installer.${NC}"
-        return
-    fi
+echo "Downloading official Equilotl CLI..."
+curl -fsSL https://github.com/Equicord/Equilotl/releases/latest/download/EquilotlCli-Linux \
+  --output "$INSTALLER_PATH"
 
-    local_modified=$(stat -c "%y" "$INSTALLER_PATH" | cut -d' ' -f1-2) || error "Failed to get local modified date"
+chmod +x "$INSTALLER_PATH"
 
-    if [ "$local_modified" != "$latest_modified" ]; then
-        echo -e "${YELLOW}Installer is outdated. Do you wish to update? [y/n]${NC}"
-        read -p "" -n 1 -r retval
+echo "Downloading custom Equicord desktop.asar..."
+curl -fsSL https://github.com/956zs/Equicord/releases/latest/download/desktop.asar \
+  --output "$ASAR_PATH"
 
-        # Create a new line before printing our next notice, otherwise it will be printed on the same line
-        # that the prompt was created on!
-        echo ""
-        case "$retval" in
-            y|Y ) download_installer;;
-            n|N ) echo -e "${YELLOW}Update cancelled. Running installer...${NC}" && return;;
-        esac
-    else
-        echo -e "${GREEN}Installer is up-to-date.${NC}"
-    fi
-}
+set -- \
+  "EQUICORD_DIRECTORY=$ASAR_PATH" \
+  "EQUICORD_DEV_INSTALL=1" \
+  "XDG_CONFIG_HOME=$XDG_CONFIG_HOME_VALUE"
 
-# Find privilege escalation command
-find_privilege_cmd() {
-    for cmd in "${PRIVILEGE_CMDS[@]}"; do
-        if command -v "$cmd" >/dev/null; then
-            echo "$cmd"
-            return
-        fi
-    done
-    error "Neither sudo nor doas found. Please install one to proceed."
-}
-
-# Main execution
-main() {
-    # Check for debug flag
-    if [[ "${1:-}" == "-debug" ]]; then
-        DEBUG=true
-        > "$LOG_FILE" # Clear previous log
-        debug_log "Debug mode enabled"
-    fi
-
-    debug_log "Starting installation process"
-    check_root
-    check_for_updates
-
-    local priv_cmd
-    priv_cmd=$(find_privilege_cmd)
-    debug_log "Using privilege command: $priv_cmd"
-
-    echo -e "${YELLOW}Running installer with $priv_cmd...${NC}"
-    debug_log "Executing installer: $priv_cmd $INSTALLER_PATH"
-    if ! "$priv_cmd" "$INSTALLER_PATH"; then
-        debug_log "Installer failed"
-        error "Installer failed to run"
-    fi
-
-    debug_log "Installation completed successfully"
-    echo -e "\n${GREEN}Installation completed successfully!${NC}"
-    echo -e "\nCredits:"
-    echo "Original script forked from Vencord"
-    echo "Modified by PhoenixAceVFX for Equicord Updater"
-    echo "Rewrite by PhoenixAceVFX"
-}
-
-# Pass arguments to main
-main "$@"
+if command -v sudo >/dev/null; then
+  echo "Running installer with sudo"
+  sudo env "$@" "$INSTALLER_PATH"
+elif command -v doas >/dev/null; then
+  echo "Running installer with doas"
+  doas env "$@" "$INSTALLER_PATH"
+elif command -v run0 >/dev/null; then
+  echo "Running installer with run0"
+  run0 env "$@" "$INSTALLER_PATH"
+elif command -v pkexec >/dev/null; then
+  echo "Running installer with pkexec"
+  pkexec env "$@" "SUDO_USER=$(whoami)" "$INSTALLER_PATH"
+else
+  echo "Neither sudo nor doas were found. Please install one of them to proceed."
+  exit 1
+fi
