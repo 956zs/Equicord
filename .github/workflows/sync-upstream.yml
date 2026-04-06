@@ -38,7 +38,7 @@ jobs:
               run: |
                   git remote remove upstream 2>/dev/null || true
                   git remote add upstream "$UPSTREAM_REPO"
-                  git fetch upstream "$UPSTREAM_BRANCH" --tags
+                  git fetch upstream "$UPSTREAM_BRANCH" --no-tags
 
             - name: Merge upstream into target branch
               run: |
