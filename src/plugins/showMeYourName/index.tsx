@@ -1138,7 +1138,7 @@ export default definePlugin({
             // Attach the group ID to their messages to allow animating gradients within a group.
             find: "CUSTOM_GIFT?\"\":",
             replacement: {
-                match: /(isHovered:(\i).{0,1300}?\(\i,\i,\i\);)(let \i=\i.id===\i)/,
+                match: /(isHovered:(\i).{0,3000}?)(let \i=\i.id===\i)/,
                 replace: "$1arguments[0].message.showMeYourNameGroupId=!!arguments[0].groupId?`g-${arguments[0].groupId}`:null;$self.handleHoveringMessage(arguments[0].message,$2);$3"
             },
         },
