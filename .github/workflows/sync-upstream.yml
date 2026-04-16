@@ -49,7 +49,22 @@ jobs:
                     exit 0
                   fi
 
-                  git merge --no-edit "upstream/$UPSTREAM_BRANCH"
+                  git merge --no-commit --no-ff "upstream/$UPSTREAM_BRANCH"
+
+                  if git diff --quiet HEAD -- .github/workflows; then
+                    echo "Fork workflows unchanged."
+                  else
+                    echo "Restoring fork workflows to avoid workflow permission push failures."
+                    git restore --source=HEAD --staged --worktree .github/workflows
+                  fi
+
+                  if git diff --cached --quiet HEAD -- && git diff --quiet --; then
+                    echo "Only upstream workflow files changed. Keeping fork workflows."
+                    git merge --abort
+                    exit 0
+                  fi
+
+                  git commit --no-edit
 
             - name: Push merged branch
               run: git push origin "HEAD:$TARGET_BRANCH"
